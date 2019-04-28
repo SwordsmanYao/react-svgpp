@@ -1,7 +1,7 @@
-import ExampleComponent from './';
+import RxExampleComponent from './RxExampleComponent';
 
-describe('ExampleComponent', () => {
+describe('RxExampleComponent', () => {
   it('is truthy', () => {
-    expect(ExampleComponent).toBeTruthy();
+    expect(RxExampleComponent).toBeTruthy();
   });
 });

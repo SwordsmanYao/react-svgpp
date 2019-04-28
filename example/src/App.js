@@ -1,11 +1,12 @@
 import React, { Component } from 'react'
 
-import ExampleComponent from 'react-svgpp'
+import { RxExampleComponent, DragComponent } from 'react-svgpp'
 
 export default function App() {
     return (
       <div>
-        <ExampleComponent text='Modern React component module' />
+        <RxExampleComponent text='Modern React component module' />
+        {/* <DragComponent /> */}
       </div>
     );
 }

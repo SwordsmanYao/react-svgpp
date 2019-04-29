@@ -1,6 +1,6 @@
 import React, { useRef, useLayoutEffect, useState } from 'react';
 import * as Rx from 'rxjs';
-import { map, switchMap, takeUntil, scan } from 'rxjs/operators';
+import { map, switchMap, scan, takeUntil } from 'rxjs/operators';
 
 import './styles.less';
 
@@ -24,32 +24,70 @@ export default function RxExampleComponent(props: IProps) {
       const mouseDown$ = Rx.fromEvent<MouseEvent>(nodeRef.current, 'mousedown');
       const mouseMove$ = Rx.fromEvent<MouseEvent>(containerRef.current, 'mousemove');
       const mouseUp$ = Rx.fromEvent<MouseEvent>(document, 'mouseup');
-      const nodePos$ = mouseDown$.pipe(
-        switchMap(event => {
+      const nodeOffset$ = mouseDown$.pipe(
+        switchMap(downEvent => {
           return mouseMove$.pipe(
-            map(moveEvent => {
-              if (containerRef.current) {
-                const { top, left } = containerRef.current.getBoundingClientRect();
-                return {
-                  x: moveEvent.clientX - left - event.offsetX, // moveEvent.clientX -- 鼠标相对可视区域距离; left -- 画布相对可是区域位置; event.offsetX -- 鼠标相对方块的位置
-                  y: moveEvent.clientY - top - event.offsetY,
-                };
+            map(moveEvent => ({
+              x: moveEvent.clientX,
+              y: moveEvent.clientY,
+            })),
+            scan<{ x: number, y: number }, { pre: { x: number, y: number }, nodeOffset: { x: number, y: number } }>(({ pre }, current) => {
+              return {
+                pre: current,
+                nodeOffset: {
+                  x: current.x - pre.x,
+                  y: current.y - pre.y,
+                },
+              };
+            }, {
+              pre: {
+                x: downEvent.clientX,
+                y: downEvent.clientY,
+              },
+              nodeOffset: {
+                x: 0,
+                y: 0,
               }
-              return { x: 0, y: 0 };
             }),
             takeUntil(mouseUp$),
           );
         }),
       );
 
-      nodePos$.subscribe(posxy => {
-        setPos(posxy);
-        console.log(posxy, 'posxy');
-      });
-    }
+      const nodePos2$ = nodeOffset$.pipe(
+        scan<{ pre: { x: number, y: number }, nodeOffset: { x: number, y: number } }, { x: number, y: number }>((nodePos, { nodeOffset }) => {
+          console.log(nodePos);
+          return {
+            x: nodePos.x + nodeOffset.x,
+            y: nodePos.y + nodeOffset.y,
+          };
+        }, {
+          x: 0,
+          y: 0,
+        }),
+      );
 
-    // 缩放
-    if (containerRef.current) {
+
+      // const nodePos$ = mouseDown$.pipe(
+      //   switchMap(event => {
+      //     return mouseMove$.pipe(
+      //       map(moveEvent => {
+      //         console.log(moveEvent.clientX, moveEvent.clientY);
+      //         if (containerRef.current) {
+      //           const { top, left } = containerRef.current.getBoundingClientRect();
+      //           return {
+      //             x: moveEvent.clientX - left - event.offsetX, // moveEvent.clientX -- 鼠标相对可视区域距离; left -- 画布相对可是区域位置; event.offsetX -- 鼠标相对方块的位置
+      //             y: moveEvent.clientY - top - event.offsetY,
+      //           };
+      //         }
+      //         return { x: 0, y: 0 };
+      //       }),
+      //       takeUntil(mouseUp$),
+      //     );
+      //   }),
+      // );
+
+      // 缩放
       const mouseWheel$ = Rx.fromEvent<WheelEvent>(containerRef.current, 'mousewheel');
       const room$ = mouseWheel$.pipe(
         scan<WheelEvent, { room: number; offsetX: number; offsetY: number }>(
@@ -89,6 +127,13 @@ export default function RxExampleComponent(props: IProps) {
           },
         ),
       );
+
+
+
+      nodePos2$.subscribe(posxy => {
+        setPos(posxy);
+        console.log(posxy, 'posxy');
+      });
 
       room$.subscribe(x => {
         setRoom(x.room);
